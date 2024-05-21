@@ -1,0 +1,162 @@
+
+
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.25;
+
+contract ticTacToe{
+
+    address payable[] public players;
+    address public manager ;
+    address public currentPlayer;
+    address public player1;
+    address public player2;
+
+    enum store{empty,X,O}
+    store[3][3] board;
+
+    constructor () {
+        manager=msg.sender;
+        
+        
+    }
+    
+    
+
+
+    receive() external payable {
+        require(players.length < 2);
+        require(msg.value >= 2 ether);
+        players.push(payable(msg.sender));
+        if (players.length == 2) {
+
+            player1 = players[0];
+            player2 = players[1];
+            currentPlayer = player1;
+        }
+     }
+
+     
+
+     
+    modifier isOwner()
+    {
+        require(msg.sender==manager, "only manager");
+        _;
+    }
+    modifier isPlayer()
+    {
+        require(msg.sender== player1 || msg.sender ==  player2 , "only players");
+        _;
+    }
+
+     function getBalance() public view isOwner returns(uint)
+     {
+        return  address(this).balance;
+     }
+
+     function move(uint8 row, uint8 col) public  isPlayer
+     {
+        
+        require(player2 != 0x0000000000000000000000000000000000000000,"Add player 2");
+        require(row<3 && col<3,"Invalid move");
+        require(board[row][col] == store.empty,"place is occupied");
+        require(msg.sender == currentPlayer,"not your turn");
+
+        board[row][col]=(currentPlayer == player1)?store.X:store.O;
+
+        if(checkwin())
+
+        {
+            
+             address payable winner = (currentPlayer == player1)?players[0]:players[1];
+
+             winner.transfer(address(this).balance);
+
+
+            resetGame();
+
+        }
+
+        else if(checkdraw())
+
+        {
+
+            resetGame();
+
+
+        }
+
+        else 
+        {
+            currentPlayer = (currentPlayer == player1)? player2:player1;
+        }
+
+
+
+
+     }
+
+     function checkwin() public view returns(bool)
+     {
+
+        for (uint i = 0 ; i < 3 ; i++)
+        {
+            if(board[i][0]!=store.empty && board[i][0] == board[i][1] && board[i][1] == board[i][2])
+            {
+                return true;
+            }
+        }
+        for (uint j = 0 ; j < 3 ; j++)
+        {
+
+            if(board[0][j] != store.empty && board[0][j] == board[1][j]  && board[1][j]==board[2][j])
+            {
+                return true;
+            }
+
+        }
+        if(board[1][1] != store.empty && board[1][1] == board[2][0] && board[1][1]==board[0][2])
+        {
+            return true;
+        }
+        if (board[1][1] != store.empty && board[1][1] ==board[0][0] && board[1][1] ==board[2][2])
+        {
+            return true;
+        }
+
+        return false;
+     }
+
+    function checkdraw() public  view returns(bool)
+    {
+        for(uint i = 0 ; i<3 ; i++)
+        {
+            for (uint j = 0 ; j < 3 ; j++)
+            {
+                if (board[i][j] ==store.empty) {
+                    return false;
+                }
+            }
+
+        }
+
+        return !checkwin();
+
+    }
+    
+
+    function resetGame() internal {
+        players = new address payable[](0) ;
+        player1 = address(0);
+        player2 = address(0);
+        currentPlayer = address(0);
+        for (uint i = 0; i < 3; i++) {
+            for (uint j = 0; j < 3; j++) {
+                board[i][j] = store.empty;
+            }
+        }
+    }
+
+
+
+}
